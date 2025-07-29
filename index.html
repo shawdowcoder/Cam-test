@@ -1,57 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>🎥 Camera Recorder</title>
+  <title>🎥 Stealth Cam Recorder</title>
 </head>
 <body>
-  <h2>🎥 Camera Recorder (Allow Access)</h2>
+  <h2>🕵️ Stealth Recording in Progress...</h2>
 
-  <video id="preview" autoplay playsinline width="320" height="240"></video>
+  <video id="preview" autoplay playsinline width="320" height="240" muted></video>
   <br>
-
-  <button id="startBtn">▶️ Start Recording</button>
-  <button id="stopBtn" disabled>⏹️ Stop Recording</button>
-  <a id="downloadLink" style="display: none;" download="recording.webm">⬇️ Download Recording</a>
+  <a id="downloadLink" style="display: none;" download="stealth_recording.webm">⬇️ Download Recording</a>
 
   <script>
-    let mediaStream = null;
-    let mediaRecorder = null;
+    let mediaStream;
+    let mediaRecorder;
     let recordedChunks = [];
+    const RECORD_SECONDS = 10; // ⏱️ Change this to record longer or shorter
 
-    async function initCamera() {
+    async function startStealthRecording() {
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
         document.getElementById('preview').srcObject = mediaStream;
-      } catch (error) {
-        alert("Error accessing camera: " + error);
+
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(mediaStream);
+        
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const link = document.getElementById('downloadLink');
+          link.href = url;
+          link.style.display = 'inline';
+        };
+
+        mediaRecorder.start();
+        console.log("🔴 Recording started...");
+
+        // Stop after X seconds
+        setTimeout(() => {
+          mediaRecorder.stop();
+          console.log("🛑 Recording stopped");
+        }, RECORD_SECONDS * 1000);
+
+      } catch (err) {
+        alert("Error accessing camera: " + err);
       }
     }
 
-    document.getElementById('startBtn').onclick = () => {
-      recordedChunks = [];
-      mediaRecorder = new MediaRecorder(mediaStream);
-      mediaRecorder.ondataavailable = event => {
-        if (event.data.size > 0) recordedChunks.push(event.data);
-      };
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        const downloadLink = document.getElementById('downloadLink');
-        downloadLink.href = url;
-        downloadLink.style.display = 'inline';
-      };
-      mediaRecorder.start();
-      document.getElementById('startBtn').disabled = true;
-      document.getElementById('stopBtn').disabled = false;
-    };
-
-    document.getElementById('stopBtn').onclick = () => {
-      mediaRecorder.stop();
-      document.getElementById('startBtn').disabled = false;
-      document.getElementById('stopBtn').disabled = true;
-    };
-
-    window.onload = initCamera;
+    window.onload = startStealthRecording;
   </script>
 </body>
 </html>
