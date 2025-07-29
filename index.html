@@ -1,23 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Camera Access Test</title>
+  <title>🎥 Camera Recorder</title>
 </head>
 <body>
-  <h2>🎥 Allow Camera Access to Start</h2>
-  <video id="preview" autoplay playsinline width="100%" style="max-width: 400px;"></video>
+  <h2>🎥 Camera Recorder (Allow Access)</h2>
+
+  <video id="preview" autoplay playsinline width="320" height="240"></video>
+  <br>
+
+  <button id="startBtn">▶️ Start Recording</button>
+  <button id="stopBtn" disabled>⏹️ Stop Recording</button>
+  <a id="downloadLink" style="display: none;" download="recording.webm">⬇️ Download Recording</a>
 
   <script>
-    async function startCamera() {
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    async function initCamera() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        document.getElementById('preview').srcObject = stream;
-      } catch (err) {
-        alert("Camera access denied or not available: " + err);
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        document.getElementById('preview').srcObject = mediaStream;
+      } catch (error) {
+        alert("Error accessing camera: " + error);
       }
     }
 
-    window.onload = startCamera;
+    document.getElementById('startBtn').onclick = () => {
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(mediaStream);
+      mediaRecorder.ondataavailable = event => {
+        if (event.data.size > 0) recordedChunks.push(event.data);
+      };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = url;
+        downloadLink.style.display = 'inline';
+      };
+      mediaRecorder.start();
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('stopBtn').disabled = false;
+    };
+
+    document.getElementById('stopBtn').onclick = () => {
+      mediaRecorder.stop();
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+    };
+
+    window.onload = initCamera;
   </script>
 </body>
 </html>
